@@ -83,15 +83,13 @@ time.of.year.attribution <- function(calendar) {
   moon.search$phases <- lunar.phase(moon.search$range, name = FALSE)
   moon.search$weekdays <- wday(moon.search$range, week_start = 7)
   ## Find first full moon in spring
-  moon.search$first.full <- min(which(moon.search$phases == "Full"))
+  moon.search$first.full <- min(which(moon.search$phases >= pi))
   
   ## Find first sunday that is at least one day after the first full moon
   moon.search$potential.easter <-
     moon.search$weekdays[moon.search$first.full + 1:(length(moon.search$weekdays) - moon.search$first.full)]
   moon.search$easter.sunday <- min(which(moon.search$potential.easter == 1))
   easter.sunday <- moon.search$range[moon.search$easter.sunday + moon.search$first.full]
-  
-  ## Problem: Easter should be on 31.03., but I get 24.03.
-  ## Next steps: Easter Sunday begins Easter time
-  ## Ash Wednesday is 46 days before Easter Sunday
+  ash.wednesday <- easter.sunday %m-% days(46)
+
 }
