@@ -46,7 +46,8 @@ calendar.generation <- function(year) {
 
 # Add information on time of year -----------------------------------------
 
-test <- calendar.generation(year = 2023)
+# Parameters:
+# calendar: a calendar object as returned by calendar.generation()
 
 time.of.year.attribution <- function(calendar) {
   # Get year from calendar
@@ -57,14 +58,14 @@ time.of.year.attribution <- function(calendar) {
     mutate(time.of.year = vector(mode = "character", length = nrow(calendar)))
   
   # Advent
-  christmas.row = which(calendar[["date"]] == paste(start.year, "12", "24", sep = "-"))
+  christmas.row <-
+    which(calendar[["date"]] == paste(start.year, "12", "24", sep = "-"))
   calendar[1:christmas.row, "time.of.year"] <- "advent"
   
   # Christmas
-  christmas.row <- christmas.row + 1
   christmas.end <-
     which(calendar[["date"]] == paste(start.year + 1, "01", "08", sep = "-"))
-  calendar[christmas.row:christmas.end, "time.of.year"] <-
+  calendar[(christmas.row + 1):christmas.end, "time.of.year"] <-
     "christmas"
   
   # Lent and Easter
@@ -85,11 +86,45 @@ time.of.year.attribution <- function(calendar) {
   ## Find first full moon in spring
   moon.search$first.full <- min(which(moon.search$phases >= pi))
   
-  ## Find first sunday that is at least one day after the first full moon
+  ## Find first Sunday that is at least one day after the first full moon
   moon.search$potential.easter <-
     moon.search$weekdays[moon.search$first.full + 1:(length(moon.search$weekdays) - moon.search$first.full)]
-  moon.search$easter.sunday <- min(which(moon.search$potential.easter == 1))
-  easter.sunday <- moon.search$range[moon.search$easter.sunday + moon.search$first.full]
+  moon.search$easter.sunday <-
+    min(which(moon.search$potential.easter == 1))
+  easter.sunday <-
+    moon.search$range[moon.search$easter.sunday + moon.search$first.full]
   ash.wednesday <- easter.sunday %m-% days(46)
+  pentecost.sunday <- easter.sunday %m+% days(49)
+  
+  ## Determine time intervals that result from Easter
+  ash.row <- which(calendar[["date"]] == ash.wednesday)
+  easter.row <- which(calendar[["date"]] == easter.sunday)
+  pentecost.row <- which(calendar[["date"]] == pentecost.sunday)
+  calendar[(christmas.row + 1):(ash.row - 1), "time.of.year"] <-
+    "ordinary"
+  calendar[ash.row:(easter.row - 1), "time.of.year"] <-
+    "lent"
+  calendar[easter.row:pentecost.row, "time.of.year"] <-
+    "easter"
+  calendar[(pentecost.row + 1):nrow(calendar), "time.of.year"] <-
+    "ordinary"
+  
+  # Return calendar with time of year
+  return(calendar)
+}
 
+# Utility function to combine all functions -------------------------------
+
+# Parameters:
+# year: integer value for year in which calendar should start
+
+catholic.calendar <- function(year) {
+  # Generate raw calendar
+  calendar <- calendar.generation(year = year)
+  
+  # Assign time of year
+  calendar <- time.of.year.attribution(calendar)
+  
+  # Return results
+  return(calendar)
 }
