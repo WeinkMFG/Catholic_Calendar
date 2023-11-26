@@ -2,8 +2,21 @@
 
 library(tidyverse)
 library(here)
+library(readxl)
 library(lubridate)
 library(lunar)
+
+
+# Read data ---------------------------------------------------------------
+
+special.days <- read_excel(
+  here("data/special_days.xlsx"),
+  sheet = "Special_Days",
+  col_types = c(rep("numeric", 2),
+                rep("text", 3))
+) %>%
+  mutate(month = as.integer(month),
+         day = as.integer(day))
 
 # Generate raw calendar ---------------------------------------------------
 
@@ -59,12 +72,16 @@ time.of.year.attribution <- function(calendar) {
   
   # Advent
   christmas.row <-
-    which(calendar[["date"]] == paste(start.year, "12", "24", sep = "-"))
+    which(calendar[["date"]] == ymd(paste(start.year, "12", "24", sep = "-")))
   calendar[1:christmas.row, "time.of.year"] <- "advent"
   
   # Christmas
+  epiphany <- list()
+  epiphany$date <- ymd(paste(start.year + 1, "01", "06", sep = "-"))
+  epiphany$day.of.week <- wday(epiphany$date, week_start = 7)
+  christmas.end <- epiphany$date %m+% days(((epiphany$day.of.week - 7) + 1))
   christmas.end <-
-    which(calendar[["date"]] == paste(start.year + 1, "01", "08", sep = "-"))
+    which(calendar[["date"]] == christmas.end)
   calendar[(christmas.row + 1):christmas.end, "time.of.year"] <-
     "christmas"
   
@@ -100,7 +117,7 @@ time.of.year.attribution <- function(calendar) {
   ash.row <- which(calendar[["date"]] == ash.wednesday)
   easter.row <- which(calendar[["date"]] == easter.sunday)
   pentecost.row <- which(calendar[["date"]] == pentecost.sunday)
-  calendar[(christmas.row + 1):(ash.row - 1), "time.of.year"] <-
+  calendar[(christmas.end + 1):(ash.row - 1), "time.of.year"] <-
     "ordinary"
   calendar[ash.row:(easter.row - 1), "time.of.year"] <-
     "lent"
@@ -111,6 +128,60 @@ time.of.year.attribution <- function(calendar) {
   
   # Return calendar with time of year
   return(calendar)
+}
+
+# Add special days --------------------------------------------------------
+
+# https://www.stundenbuch-online.de/home.php?p=305&dev=d
+# https://www.stundenbuch-online.de/home.php?p=307
+# https://www.stundenbuch-online.de/home.php#top
+test <- catholic.calendar(year = 2023)
+calendar <- test
+
+# Parameters:
+# calendar: a calendar object as returned by calendar.generation()
+# special.days: a tibble with general dates of special days,
+#               columns month, day, type, name_german, and name_english
+#               by default stored in data/special_days.xlsx
+
+
+special.days.attribution <- function(calendar, special.days = special.days) {
+  # Get year from calendar
+  start.year = year(pull(calendar[1, "date"]))
+  
+  # Prepare the special days
+  special.days <- special.days %>%
+    mutate(year = case_when(month == 12 ~ start.year,
+                            TRUE ~ start.year + 1),
+           .before = "month") %>%
+    mutate(date = paste(
+      year,
+      str_pad(
+        month,
+        width = 2,
+        side = "left",
+        pad = "0"
+      ),
+      str_pad(
+        day,
+        width = 2,
+        side = "left",
+        pad = "0"
+      ),
+      sep = "-"
+    ),
+    .after = "day") %>%
+    mutate(date = ymd(date)) %>%
+    mutate(day.of.week = wday(date, week_start = 7), .after = "date")
+    
+  calendar <- left_join(calendar, select(special.days, date, type, name_german, name_english), by = c("date" = "date"))
+  
+  # Resolve collisions with moving days
+  ## Baptism of the Lord
+  calendar[max(which(calendar[["time.of.year"]] == "christmas")),"type"] <- "festivity"
+  calendar[max(which(calendar[["time.of.year"]] == "christmas")),"name_german"] <- "Taufe des Herrn"
+  calendar[max(which(calendar[["time.of.year"]] == "christmas")),"name_english"] <- "Baptism of the Lord"
+  
 }
 
 # Utility function to combine all functions -------------------------------
