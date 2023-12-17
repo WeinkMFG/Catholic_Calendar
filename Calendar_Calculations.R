@@ -135,8 +135,8 @@ time.of.year.attribution <- function(calendar) {
 # https://www.stundenbuch-online.de/home.php?p=305&dev=d
 # https://www.stundenbuch-online.de/home.php?p=307
 # https://www.stundenbuch-online.de/home.php#top
-test <- catholic.calendar(year = 2023)
-calendar <- test
+# test <- catholic.calendar(year = 2023)
+# calendar <- test
 
 # Parameters:
 # calendar: a calendar object as returned by calendar.generation()
@@ -144,100 +144,194 @@ calendar <- test
 #               columns month, day, type, name_german, and name_english
 #               by default stored in data/special_days.xlsx
 
-
-special.days.attribution <- function(calendar, special.days = special.days) {
-  # Get year from calendar
-  start.year = year(pull(calendar[1, "date"]))
-  
-  # Prepare the special days
-  special.days <- special.days %>%
-    mutate(year = case_when(month == 12 ~ start.year,
-                            TRUE ~ start.year + 1),
-           .before = "month") %>%
-    mutate(date = paste(
-      year,
-      str_pad(
-        month,
-        width = 2,
-        side = "left",
-        pad = "0"
+special.days.attribution <-
+  function(calendar, special.days = special.days) {
+    # Get year from calendar
+    start.year = year(pull(calendar[1, "date"]))
+    
+    # Prepare the special days
+    special.days <- special.days %>%
+      mutate(year = case_when(month == 12 ~ start.year,
+                              TRUE ~ start.year + 1),
+             .before = "month") %>%
+      mutate(date = paste(
+        year,
+        str_pad(
+          month,
+          width = 2,
+          side = "left",
+          pad = "0"
+        ),
+        str_pad(
+          day,
+          width = 2,
+          side = "left",
+          pad = "0"
+        ),
+        sep = "-"
       ),
-      str_pad(
-        day,
-        width = 2,
-        side = "left",
-        pad = "0"
-      ),
-      sep = "-"
-    ),
-    .after = "day") %>%
-    mutate(date = ymd(date)) %>%
-    mutate(day.of.week = wday(date, week_start = 7), .after = "date")
-  
-  # Adapt all dates if dealing with leap year
-  if (leap_year(start.year + 1)) {
-    mutate(date = case_when(
-      date <= ymd(paste(as.character(start.year + 1), "2", "25", sep = "-")) ~ date,
-      TRUE ~ date %m+% days(1)
-    ))
+      .after = "day") %>%
+      mutate(date = ymd(date)) %>%
+      mutate(day.of.week = wday(date, week_start = 7),
+             .after = "date")
+    
+    # TO FIX: This adds one to each date after 25. Feb, which is wrong.
+    #         What I need is to leave the dates untouched but instead move all festivities.
+    #         Example: Pentecost should be 19 May 2024, which is a Sunday, but with this code
+    #                  is moved to 20 May because this becomes a Sunday ("2024-05-19" %m+% days(1))
+    # Adapt all dates if dealing with leap year
+    # if (leap_year(start.year + 1)) {
+    #   calendar <- calendar %>%
+    #     mutate(date = case_when(date <= ymd(
+    #       paste(as.character(start.year + 1), "2", "25", sep = "-")
+    #     ) ~ date,
+    #     TRUE ~ date %m+% days(1)))
+    # }
+    
+    # Write special days in calendar
+    calendar <-
+      left_join(
+        calendar,
+        select(special.days, date, type, name_german, name_english),
+        by = c("date" = "date")
+      )
+    
+    # Resolve collisions with moving days
+    ## Baptism of the Lord
+    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "type"] <-
+      "festivity"
+    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "name_german"] <-
+      "Taufe des Herrn"
+    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "name_english"] <-
+      "Baptism of the Lord"
+    
+    ## Easter and Pentecost
+    calendar[min(which(calendar[["time.of.year"]] == "easter")), "type"] <-
+      "high"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
+      "Auferstehung des Herrn"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_english"] <-
+      "Resurrection of the Lord"
+    
+    search.date <-
+      pull(calendar[min(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(7)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "festivity"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Sonntag der göttlichen Barmherzigkeit"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Sunday of Divine Mercy"
+    
+    calendar[max(which(calendar[["time.of.year"]] == "easter")), "type"] <-
+      "high"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
+      "Pfingsten"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")), "name_english"] <-
+      "Pentecost"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(1)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "memory"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Maria, Mutter der Kirche"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Mary, Mother of the Church"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(7)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "high"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Dreifaltigkeitssonntag"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Holy Trinity Sunday"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(11)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "high"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Fronleichnam"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Corpus Christi"
+    
+    ## Post-Pentecost
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(19)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "high"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Herz Jesu"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Heart of Christ"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(20)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "memory"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Unbeflecktes Herz Mariens"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Immaculate Heart of Mary"
+    
+    ## Christ King
+    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
+                         calendar[["day.of.week"]] == 1)), "type"] <-
+      "high"
+    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
+                         calendar[["day.of.week"]] == 1)), "name_german"] <-
+      "Christkönigsonntag"
+    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
+                         calendar[["day.of.week"]] == 1)), "name_english"] <-
+      "Christ the King Sunday"
+    
+    ## Holy family
+    {
+      if (wday(ymd(paste(start.year, "12", "25", sep = "-")), week_start = 7) == 1) {
+        calendar[which(calendar[["date"]] == ymd(paste(start.year, "12", "30", sep = "-"))), "type"] <-
+          "festivity"
+        calendar[which(calendar[["date"]] == ymd(paste(start.year, "12", "30", sep = "-"))), "name_german"] <-
+          "Fest der Heiligen Familie"
+        calendar[which(calendar[["date"]] == ymd(paste(start.year, "12", "30", sep = "-"))), "name_english"] <-
+          "Feast of the Holy Family"
+      }
+      else {
+        calendar[min(which(calendar[["time.of.year"]] == "christmas" &
+                             calendar[["day.of.week"]] == 1)), "type"] <-
+          "festivity"
+        calendar[min(which(calendar[["time.of.year"]] == "christmas" &
+                             calendar[["day.of.week"]] == 1)), "name_german"] <-
+          "Fest der Heiligen Familie"
+        calendar[min(which(calendar[["time.of.year"]] == "christmas" &
+                             calendar[["day.of.week"]] == 1)), "name_english"] <-
+          "Feast of the Holy Family"
+      }
+    }
+    
+    #Return calendar with festivities
+    return(calendar)
   }
-  
-  # Write special days in calendar  
-  calendar <- left_join(calendar, select(special.days, date, type, name_german, name_english), by = c("date" = "date"))
-  
-  # Resolve collisions with moving days
-  ## Baptism of the Lord
-  calendar[max(which(calendar[["time.of.year"]] == "christmas")),"type"] <- "festivity"
-  calendar[max(which(calendar[["time.of.year"]] == "christmas")),"name_german"] <- "Taufe des Herrn"
-  calendar[max(which(calendar[["time.of.year"]] == "christmas")),"name_english"] <- "Baptism of the Lord"
-  
-  ## Easter and Pentecost
-  calendar[min(which(calendar[["time.of.year"]] == "easter")),"type"] <- "high"
-  calendar[min(which(calendar[["time.of.year"]] == "easter")),"name_german"] <- "Auferstehung des Herrn"
-  calendar[min(which(calendar[["time.of.year"]] == "easter")),"name_english"] <- "Resurrection of the Lord"
-  
-  calendar[min(which(calendar[["time.of.year"]] == "easter")) %+m% days(7),"type"] <- "festivity"
-  calendar[min(which(calendar[["time.of.year"]] == "easter")) %+m% days(7),"name_german"] <- "Sonntag der göttlichen Barmherzigkeit"
-  calendar[min(which(calendar[["time.of.year"]] == "easter")) %+m% days(7),"name_english"] <- "Sunday of Divine Mercy"
-  
-  calendar[max(which(calendar[["time.of.year"]] == "easter")),"type"] <- "high"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")),"name_german"] <- "Pfingsten"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")),"name_english"] <- "Pentecost"
-  
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(1),"type"] <- "memory"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(1),"name_german"] <- "Maria, Mutter der Kirche"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(1),"name_english"] <- "Mary, Mother of the Church"
-  
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(7),"type"] <- "high"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(7),"name_german"] <- "Dreifaltigkeitssonntag"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(7),"name_english"] <- "Holy Trinity Sunday"
-  
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(11),"type"] <- "high"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(11),"name_german"] <- "Fronleichnam"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(11),"name_english"] <- "Corpus Christi"
-  
-  ## Post-Pentecost
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(19),"type"] <- "high"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(19),"name_german"] <- "Herz Jesu"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(19),"name_english"] <- "Heart of Christ"
-  
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(20),"type"] <- "memory"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(20),"name_german"] <- "Unbeflecktes Herz Mariens"
-  calendar[max(which(calendar[["time.of.year"]] == "easter")) %m+% days(20),"name_english"] <- "Immaculate Heart of Mary"
-}
 
 # Utility function to combine all functions -------------------------------
 
 # Parameters:
 # year: integer value for year in which calendar should start
+# special.days: a tibble with general dates of special days,
+#               columns month, day, type, name_german, and name_english
+#               by default stored in data/special_days.xlsx
 
-catholic.calendar <- function(year) {
+catholic.calendar <- function(year, special.days) {
   # Generate raw calendar
   calendar <- calendar.generation(year = year)
   
   # Assign time of year
   calendar <- time.of.year.attribution(calendar)
   
+  # Assign festivities
+  calendar <- special.days.attribution(calendar, special.days)
+  
   # Return results
   return(calendar)
 }
+
