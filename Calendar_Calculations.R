@@ -13,7 +13,9 @@ special.days <- read_excel(
   here("data/special_days.xlsx"),
   sheet = "Special_Days",
   col_types = c(rep("numeric", 2),
-                rep("text", 3))
+                "text",
+                "logical",
+                rep("text", 2))
 ) %>%
   mutate(month = as.integer(month),
          day = as.integer(day))
@@ -135,11 +137,9 @@ time.of.year.attribution <- function(calendar) {
 # https://www.stundenbuch-online.de/home.php?p=305&dev=d
 # https://www.stundenbuch-online.de/home.php?p=307
 # https://www.stundenbuch-online.de/home.php#top
-# test <- catholic.calendar(year = 2023)
-# calendar <- test
 
 # Parameters:
-# calendar: a calendar object as returned by calendar.generation()
+# calendar: a calendar object as returned by time.of.year.attribution()
 # special.days: a tibble with general dates of special days,
 #               columns month, day, type, name_german, and name_english
 #               by default stored in data/special_days.xlsx
@@ -174,19 +174,6 @@ special.days.attribution <-
       mutate(date = ymd(date)) %>%
       mutate(day.of.week = wday(date, week_start = 7),
              .after = "date")
-    
-    # TO FIX: This adds one to each date after 25. Feb, which is wrong.
-    #         What I need is to leave the dates untouched but instead move all festivities.
-    #         Example: Pentecost should be 19 May 2024, which is a Sunday, but with this code
-    #                  is moved to 20 May because this becomes a Sunday ("2024-05-19" %m+% days(1))
-    # Adapt all dates if dealing with leap year
-    # if (leap_year(start.year + 1)) {
-    #   calendar <- calendar %>%
-    #     mutate(date = case_when(date <= ymd(
-    #       paste(as.character(start.year + 1), "2", "25", sep = "-")
-    #     ) ~ date,
-    #     TRUE ~ date %m+% days(1)))
-    # }
     
     # Write special days in calendar
     calendar <-
@@ -313,6 +300,28 @@ special.days.attribution <-
     return(calendar)
   }
 
+# Add lithurgical colours -------------------------------------------------
+
+# https://www.vivat.de/magazin/christliches-leben/gottesdienst/liturgische-farben/
+# https://www.messdiener-budberg.de/Inhalte/Allgemein/liturgische_farben.htm
+
+# Parameters:
+# calendar: a calendar object as returned by special.days.attribution()
+
+lithurgical.colours <- function(calendar) {
+  # Create vector to hold information
+  cols <- vector(mode = "character", length = nrow(calendar))
+  
+  # Add colours to vector
+  ## Green
+  pos <- which(calendar[["time.of.year"]] == "ordinary")
+  cols[pos] <- "green"
+  ## White
+  pos <- which(calendar[["type"]] == "high")
+  
+}
+
+
 # Utility function to combine all functions -------------------------------
 
 # Parameters:
@@ -335,3 +344,4 @@ catholic.calendar <- function(year, special.days) {
   return(calendar)
 }
 
+test <- catholic.calendar(2023, special.days = special.days)
