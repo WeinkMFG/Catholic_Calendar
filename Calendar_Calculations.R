@@ -5,6 +5,7 @@ library(here)
 library(readxl)
 library(lubridate)
 library(lunar)
+library(stringr)
 
 
 # Read data ---------------------------------------------------------------
@@ -179,7 +180,7 @@ special.days.attribution <-
     calendar <-
       left_join(
         calendar,
-        select(special.days, date, type, name_german, name_english),
+        select(special.days, date, type, is_martyr, name_german, name_english),
         by = c("date" = "date")
       )
     
@@ -193,6 +194,22 @@ special.days.attribution <-
       "Baptism of the Lord"
     
     ## Easter and Pentecost
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 7, "name_german"] <-
+      "Palmsonntag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 7, "name_english"] <-
+      "Palm Sunday"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 3, "name_german"] <-
+      "Gründonnerstag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 3, "name_english"] <-
+      "Maundy Thursday"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 2, "name_german"] <-
+      "Karfreitag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 2, "name_english"] <-
+      "Good Friday"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 1, "name_german"] <-
+      "Karfsamstag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 1, "name_english"] <-
+      "Holy Saturday"
     calendar[min(which(calendar[["time.of.year"]] == "easter")), "type"] <-
       "high"
     calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
@@ -208,6 +225,13 @@ special.days.attribution <-
       "Sonntag der göttlichen Barmherzigkeit"
     calendar[which(calendar[["date"]] == search.date), "name_english"] <-
       "Sunday of Divine Mercy"
+    
+    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "type"] <-
+      "high"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "name_german"] <-
+      "Christi Himmelfahrt"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "name_english"] <-
+      "Ascension Day"
     
     calendar[max(which(calendar[["time.of.year"]] == "easter")), "type"] <-
       "high"
@@ -316,9 +340,35 @@ lithurgical.colours <- function(calendar) {
   ## Green
   pos <- which(calendar[["time.of.year"]] == "ordinary")
   cols[pos] <- "green"
+  ## Violet / rose
+  pos <- which(calendar[["time.of.year"]] == "advent" | calendar[["time.of.year"]] == "lent")
+  cols[pos] <- "purple3"
+  pos <- which(calendar[["time.of.year"]] == "lent" & calendar[["day.of.week"]] == 1)[4]
+  pos <- append(pos, which(calendar[["time.of.year"]] == "advent" & calendar[["day.of.week"]] == 1)[3])
+  cols[pos] <- "violet"
+  ## Black
+  pos <- which(calendar[["name_german"]] == "Allerseelen")
+  cols[pos] <- "black"
+  ## Red
+  pos <- which(calendar[["name_english"]] %in% c("Palm Sunday", "Good Friday", "Pentecost", "Exaltation of the Cross"))
+  pos <- append(pos, which(calendar[["is_martyr"]] == TRUE))
+  pos <- append(pos, str_which(calendar[["name_german"]], "Evgl\\."))
+  pos <- append(pos, str_which(calendar[["name_german"]], "Apstl\\."))
+  cols[pos] <- "red"
   ## White
-  pos <- which(calendar[["type"]] == "high")
+  pos <- which(cols == "")
+  pos <- append(pos, which(calendar[["type"]] == "high"))
+  pos <- append(pos, str_which(calendar[["name_german"]], "Maria"))
+  pos <- append(pos, str_which(calendar[["name_german"]], "Mariä"))
+  pos <- append(pos, which(calendar[["name_german"]] %in% c("Kathedra Petri", "Bekehrung des Apostel Paulus")))
+  cols[pos] <- "white"
   
+  # Combine data
+  calendar <- calendar %>%
+    add_column(colour = as_factor(cols))
+  
+  # Return calendar with colours
+  return(calendar)
 }
 
 
@@ -340,8 +390,12 @@ catholic.calendar <- function(year, special.days) {
   # Assign festivities
   calendar <- special.days.attribution(calendar, special.days)
   
+  # Assign colours
+  calendar <- lithurgical.colours(calendar)
+  
   # Return results
   return(calendar)
 }
 
 test <- catholic.calendar(2023, special.days = special.days)
+write_csv(test, here("calendars/test_calendar_2024.csv"))
