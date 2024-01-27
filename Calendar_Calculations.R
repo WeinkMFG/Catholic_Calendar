@@ -82,7 +82,8 @@ time.of.year.attribution <- function(calendar) {
   epiphany <- list()
   epiphany$date <- ymd(paste(start.year + 1, "01", "06", sep = "-"))
   epiphany$day.of.week <- wday(epiphany$date, week_start = 7)
-  christmas.end <- epiphany$date %m+% days(((epiphany$day.of.week - 7) + 1))
+  christmas.end <-
+    epiphany$date %m+% days(((epiphany$day.of.week - 7) + 1))
   christmas.end <-
     which(calendar[["date"]] == christmas.end)
   calendar[(christmas.row + 1):christmas.end, "time.of.year"] <-
@@ -180,7 +181,14 @@ special.days.attribution <-
     calendar <-
       left_join(
         calendar,
-        select(special.days, date, type, is_martyr, name_german, name_english),
+        select(
+          special.days,
+          date,
+          type,
+          is_martyr,
+          name_german,
+          name_english
+        ),
         by = c("date" = "date")
       )
     
@@ -208,18 +216,25 @@ special.days.attribution <-
     
     ## Priority II.6: Sundays in Christmas time and ordinary time festivities (but overruled by high festivities)
     sundays <- list()
-    sundays$pos <- which(calendar[["time.of.year"]] == "ordinary" & calendar[["day.of.week"]] == 1)
-    sundays$names.german <- paste(2:(length(sundays$pos) + 1), ". Sonntag im Jahreskreis", sep = "")
-    sundays$names.english <- paste(2:(length(sundays$pos) + 1), "th Sunday of the year", sep = "")
-    sundays$high <- which(calendar[["time.of.year"]] == "ordinary" & calendar[["day.of.week"]] == 1 & calendar[["type"]] == "high")
+    sundays$pos <-
+      which(calendar[["time.of.year"]] == "ordinary" &
+              calendar[["day.of.week"]] == 1)
+    sundays$names.german <-
+      paste(2:(length(sundays$pos) + 1), ". Sonntag im Jahreskreis", sep = "")
+    sundays$names.english <-
+      paste(2:(length(sundays$pos) + 1), "th Sunday of the year", sep = "")
+    sundays$high <-
+      which(calendar[["time.of.year"]] == "ordinary" &
+              calendar[["day.of.week"]] == 1 & calendar[["type"]] == "high")
     if (length(sundays$high) > 0) {
       rm <- which(sundays$pos %in% sundays$high)
       sundays$pos <- sundays$pos[-rm]
       sundays$names.german <- sundays$names.german[-rm]
       sundays$names.english <- sundays$names.english[-rm]
     }
-    calendar[sundays$pos,"name_german"] <- sundays$names.german
-    calendar[sundays$pos,"name_english"] <- sundays$names.english
+    calendar[sundays$pos, "is_martyr"] <- NA
+    calendar[sundays$pos, "name_german"] <- sundays$names.german
+    calendar[sundays$pos, "name_english"] <- sundays$names.english
     
     ## Priority II.5: Lord's festivities
     {
@@ -281,17 +296,32 @@ special.days.attribution <-
     
     # Priority I.2: Christmas, Appearance of the Lord, Ascension Day, Pentecost, Advent Sundays,
     # Lent Sundays, Easter Sundays, Ash Wednesday
-    sundays <- which(calendar[["time.of.year"]] == "advent" & calendar[["day.of.week"]] == 1)
-    calendar[sundays,"name_german"] <- paste(1:4, ". Adventssonntag", sep = "")
-    calendar[sundays,"name_english"] <- paste(1:4, "th Sunday of Advent", sep = "")
+    sundays <-
+      which(calendar[["time.of.year"]] == "advent" &
+              calendar[["day.of.week"]] == 1)
+    calendar[sundays, "is_martyr"] <- NA
+    calendar[sundays, "name_german"] <-
+      paste(1:4, ". Adventssonntag", sep = "")
+    calendar[sundays, "name_english"] <-
+      paste(1:4, "th Sunday of Advent", sep = "")
     
-    sundays <- which(calendar[["time.of.year"]] == "lent" & calendar[["day.of.week"]] == 1)
-    calendar[sundays,"name_german"] <- paste(1:length(sundays), ". Fastensonntag", sep = "")
-    calendar[sundays,"name_english"] <- paste(1:length(sundays), "th Sunday of Lent", sep = "")
+    sundays <-
+      which(calendar[["time.of.year"]] == "lent" &
+              calendar[["day.of.week"]] == 1)
+    calendar[sundays, "is_martyr"] <- NA
+    calendar[sundays, "name_german"] <-
+      paste(1:length(sundays), ". Fastensonntag", sep = "")
+    calendar[sundays, "name_english"] <-
+      paste(1:length(sundays), "th Sunday of Lent", sep = "")
     
-    sundays <- which(calendar[["time.of.year"]] == "easter" & calendar[["day.of.week"]] == 1)
-    calendar[sundays,"name_german"] <- paste(1:length(sundays), ". Sonntag der Osterzeit", sep = "")
-    calendar[sundays,"name_english"] <- paste(1:length(sundays), "th Sunday of Easter", sep = "")
+    sundays <-
+      which(calendar[["time.of.year"]] == "easter" &
+              calendar[["day.of.week"]] == 1)
+    calendar[sundays, "is_martyr"] <- NA
+    calendar[sundays, "name_german"] <-
+      paste(1:length(sundays), ". Sonntag der Osterzeit", sep = "")
+    calendar[sundays, "name_english"] <-
+      paste(1:length(sundays), "th Sunday of Easter", sep = "")
     
     calendar[min(which(calendar[["time.of.year"]] == "lent")), "type"] <-
       "high"
@@ -381,26 +411,54 @@ lithurgical.colours <- function(calendar) {
   pos <- which(calendar[["time.of.year"]] == "ordinary")
   cols[pos] <- "green"
   ## Violet / rose
-  pos <- which(calendar[["time.of.year"]] == "advent" | calendar[["time.of.year"]] == "lent")
+  pos <-
+    which(calendar[["time.of.year"]] == "advent" |
+            calendar[["time.of.year"]] == "lent")
   cols[pos] <- "purple3"
-  pos <- which(calendar[["time.of.year"]] == "lent" & calendar[["day.of.week"]] == 1)[4]
-  pos <- append(pos, which(calendar[["time.of.year"]] == "advent" & calendar[["day.of.week"]] == 1)[3])
+  pos <-
+    which(calendar[["time.of.year"]] == "lent" &
+            calendar[["day.of.week"]] == 1)[4]
+  pos <-
+    append(pos, which(calendar[["time.of.year"]] == "advent" &
+                        calendar[["day.of.week"]] == 1)[3])
   cols[pos] <- "violet"
   ## Black
   pos <- which(calendar[["name_german"]] == "Allerseelen")
   cols[pos] <- "black"
   ## Red
-  pos <- which(calendar[["name_english"]] %in% c("Palm Sunday", "Good Friday", "Pentecost", "Exaltation of the Cross"))
+  pos <-
+    which(calendar[["name_english"]] %in% c(
+      "Palm Sunday",
+      "Good Friday",
+      "Pentecost",
+      "Exaltation of the Cross"
+    ))
   pos <- append(pos, which(calendar[["is_martyr"]] == TRUE))
-  pos <- append(pos, str_which(calendar[["name_german"]], "Evgl\\."))
-  pos <- append(pos, str_which(calendar[["name_german"]], "Apstl\\."))
+  pos <-
+    append(pos, str_which(calendar[["name_german"]], "Evgl\\."))
+  pos <-
+    append(pos, str_which(calendar[["name_german"]], "Apstl\\."))
   cols[pos] <- "red"
   ## White
   pos <- which(cols == "")
-  pos <- append(pos, which(calendar[["type"]] == "high"))
+  pos <-
+    append(pos, which(calendar[["type"]] == "high" &
+                        !(
+                          calendar[["name_english"]] %in% c(
+                            "Palm Sunday",
+                            "Good Friday",
+                            "Pentecost",
+                            "Exaltation of the Cross"
+                          )
+                        )))
   pos <- append(pos, str_which(calendar[["name_german"]], "Maria"))
   pos <- append(pos, str_which(calendar[["name_german"]], "Mariä"))
-  pos <- append(pos, which(calendar[["name_german"]] %in% c("Kathedra Petri", "Bekehrung des Apostel Paulus")))
+  pos <-
+    append(pos, str_which(calendar[["name_german"]], "Mariens"))
+  pos <-
+    append(pos, which(
+      calendar[["name_german"]] %in% c("Kathedra Petri", "Bekehrung des Apostel Paulus")
+    ))
   cols[pos] <- "white"
   
   # Combine data
@@ -410,7 +468,6 @@ lithurgical.colours <- function(calendar) {
   # Return calendar with colours
   return(calendar)
 }
-
 
 # Utility function to combine all functions -------------------------------
 
@@ -436,6 +493,8 @@ catholic.calendar <- function(year, special.days) {
   # Return results
   return(calendar)
 }
+
+# TO DO: When a High festivity is replaced by an automation, is it moved to the next free day that is not of ranks 1-8
 
 test <- catholic.calendar(2023, special.days = special.days)
 write_csv(test, here("calendars/test_calendar_2024.csv"))
