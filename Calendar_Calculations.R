@@ -185,61 +185,9 @@ special.days.attribution <-
       )
     
     # Resolve collisions with moving days
-    ## Baptism of the Lord
-    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "type"] <-
-      "festivity"
-    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "name_german"] <-
-      "Taufe des Herrn"
-    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "name_english"] <-
-      "Baptism of the Lord"
+    # In order of priorities to overwrite when necessary
     
-    ## Easter and Pentecost
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 7, "name_german"] <-
-      "Palmsonntag"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 7, "name_english"] <-
-      "Palm Sunday"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 3, "name_german"] <-
-      "Gründonnerstag"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 3, "name_english"] <-
-      "Maundy Thursday"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 2, "name_german"] <-
-      "Karfreitag"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 2, "name_english"] <-
-      "Good Friday"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 1, "name_german"] <-
-      "Karfsamstag"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 1, "name_english"] <-
-      "Holy Saturday"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")), "type"] <-
-      "high"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
-      "Auferstehung des Herrn"
-    calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_english"] <-
-      "Resurrection of the Lord"
-    
-    search.date <-
-      pull(calendar[min(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(7)
-    calendar[which(calendar[["date"]] == search.date), "type"] <-
-      "festivity"
-    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
-      "Sonntag der göttlichen Barmherzigkeit"
-    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
-      "Sunday of Divine Mercy"
-    
-    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "type"] <-
-      "high"
-    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "name_german"] <-
-      "Christi Himmelfahrt"
-    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "name_english"] <-
-      "Ascension Day"
-    
-    calendar[max(which(calendar[["time.of.year"]] == "easter")), "type"] <-
-      "high"
-    calendar[max(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
-      "Pfingsten"
-    calendar[max(which(calendar[["time.of.year"]] == "easter")), "name_english"] <-
-      "Pentecost"
-    
+    ## Priority II.7: Festivities of Mary and general festivities (from special.days)
     search.date <-
       pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(1)
     calendar[which(calendar[["date"]] == search.date), "type"] <-
@@ -250,34 +198,6 @@ special.days.attribution <-
       "Mary, Mother of the Church"
     
     search.date <-
-      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(7)
-    calendar[which(calendar[["date"]] == search.date), "type"] <-
-      "high"
-    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
-      "Dreifaltigkeitssonntag"
-    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
-      "Holy Trinity Sunday"
-    
-    search.date <-
-      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(11)
-    calendar[which(calendar[["date"]] == search.date), "type"] <-
-      "high"
-    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
-      "Fronleichnam"
-    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
-      "Corpus Christi"
-    
-    ## Post-Pentecost
-    search.date <-
-      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(19)
-    calendar[which(calendar[["date"]] == search.date), "type"] <-
-      "high"
-    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
-      "Herz Jesu"
-    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
-      "Heart of Christ"
-    
-    search.date <-
       pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(20)
     calendar[which(calendar[["date"]] == search.date), "type"] <-
       "memory"
@@ -286,18 +206,22 @@ special.days.attribution <-
     calendar[which(calendar[["date"]] == search.date), "name_english"] <-
       "Immaculate Heart of Mary"
     
-    ## Christ King
-    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
-                         calendar[["day.of.week"]] == 1)), "type"] <-
-      "high"
-    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
-                         calendar[["day.of.week"]] == 1)), "name_german"] <-
-      "Christkönigsonntag"
-    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
-                         calendar[["day.of.week"]] == 1)), "name_english"] <-
-      "Christ the King Sunday"
+    ## Priority II.6: Sundays in Christmas time and ordinary time festivities (but overruled by high festivities)
+    sundays <- list()
+    sundays$pos <- which(calendar[["time.of.year"]] == "ordinary" & calendar[["day.of.week"]] == 1)
+    sundays$names.german <- paste(2:(length(sundays$pos) + 1), ". Sonntag im Jahreskreis", sep = "")
+    sundays$names.english <- paste(2:(length(sundays$pos) + 1), "th Sunday of the year", sep = "")
+    sundays$high <- which(calendar[["time.of.year"]] == "ordinary" & calendar[["day.of.week"]] == 1 & calendar[["type"]] == "high")
+    if (length(sundays$high) > 0) {
+      rm <- which(sundays$pos %in% sundays$high)
+      sundays$pos <- sundays$pos[-rm]
+      sundays$names.german <- sundays$names.german[-rm]
+      sundays$names.english <- sundays$names.english[-rm]
+    }
+    calendar[sundays$pos,"name_german"] <- sundays$names.german
+    calendar[sundays$pos,"name_english"] <- sundays$names.english
     
-    ## Holy family
+    ## Priority II.5: Lord's festivities
     {
       if (wday(ymd(paste(start.year, "12", "25", sep = "-")), week_start = 7) == 1) {
         calendar[which(calendar[["date"]] == ymd(paste(start.year, "12", "30", sep = "-"))), "type"] <-
@@ -319,6 +243,122 @@ special.days.attribution <-
           "Feast of the Holy Family"
       }
     }
+    
+    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "type"] <-
+      "festivity"
+    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "name_german"] <-
+      "Taufe des Herrn"
+    calendar[max(which(calendar[["time.of.year"]] == "christmas")), "name_english"] <-
+      "Baptism of the Lord"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(7)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "high"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Dreifaltigkeitssonntag"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Holy Trinity Sunday"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(11)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "high"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Fronleichnam"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Corpus Christi"
+    
+    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
+                         calendar[["day.of.week"]] == 1)), "type"] <-
+      "high"
+    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
+                         calendar[["day.of.week"]] == 1)), "name_german"] <-
+      "Christkönigsonntag"
+    calendar[max(which(calendar[["time.of.year"]] == "ordinary" &
+                         calendar[["day.of.week"]] == 1)), "name_english"] <-
+      "Christ the King Sunday"
+    
+    # Priority I.2: Christmas, Appearance of the Lord, Ascension Day, Pentecost, Advent Sundays,
+    # Lent Sundays, Easter Sundays, Ash Wednesday
+    sundays <- which(calendar[["time.of.year"]] == "advent" & calendar[["day.of.week"]] == 1)
+    calendar[sundays,"name_german"] <- paste(1:4, ". Adventssonntag", sep = "")
+    calendar[sundays,"name_english"] <- paste(1:4, "th Sunday of Advent", sep = "")
+    
+    sundays <- which(calendar[["time.of.year"]] == "lent" & calendar[["day.of.week"]] == 1)
+    calendar[sundays,"name_german"] <- paste(1:length(sundays), ". Fastensonntag", sep = "")
+    calendar[sundays,"name_english"] <- paste(1:length(sundays), "th Sunday of Lent", sep = "")
+    
+    sundays <- which(calendar[["time.of.year"]] == "easter" & calendar[["day.of.week"]] == 1)
+    calendar[sundays,"name_german"] <- paste(1:length(sundays), ". Sonntag der Osterzeit", sep = "")
+    calendar[sundays,"name_english"] <- paste(1:length(sundays), "th Sunday of Easter", sep = "")
+    
+    calendar[min(which(calendar[["time.of.year"]] == "lent")), "type"] <-
+      "high"
+    calendar[min(which(calendar[["time.of.year"]] == "lent")), "name_german"] <-
+      "Aschermittwoch"
+    calendar[min(which(calendar[["time.of.year"]] == "lent")), "name_english"] <-
+      "Ash Wednesday"
+    
+    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "type"] <-
+      "high"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "name_german"] <-
+      "Christi Himmelfahrt"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")) - 10, "name_english"] <-
+      "Ascension Day"
+    
+    calendar[max(which(calendar[["time.of.year"]] == "easter")), "type"] <-
+      "high"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
+      "Pfingsten"
+    calendar[max(which(calendar[["time.of.year"]] == "easter")), "name_english"] <-
+      "Pentecost"
+    
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 7, "name_german"] <-
+      "Palmsonntag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 7, "name_english"] <-
+      "Palm Sunday"
+    
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 3, "name_german"] <-
+      "Gründonnerstag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 3, "name_english"] <-
+      "Maundy Thursday"
+    
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 2, "name_german"] <-
+      "Karfreitag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 2, "name_english"] <-
+      "Good Friday"
+    
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 1, "name_german"] <-
+      "Karsamstag"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")) - 1, "name_english"] <-
+      "Holy Saturday"
+    
+    calendar[min(which(calendar[["time.of.year"]] == "easter")), "type"] <-
+      "high"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_german"] <-
+      "Auferstehung des Herrn"
+    calendar[min(which(calendar[["time.of.year"]] == "easter")), "name_english"] <-
+      "Resurrection of the Lord"
+    
+    search.date <-
+      pull(calendar[min(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(7)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "festivity"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Sonntag der göttlichen Barmherzigkeit"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Sunday of Divine Mercy"
+    
+    search.date <-
+      pull(calendar[max(which(calendar[["time.of.year"]] == "easter")), "date"]) %m+% days(19)
+    calendar[which(calendar[["date"]] == search.date), "type"] <-
+      "high"
+    calendar[which(calendar[["date"]] == search.date), "name_german"] <-
+      "Herz Jesu"
+    calendar[which(calendar[["date"]] == search.date), "name_english"] <-
+      "Heart of Christ"
+    
     
     #Return calendar with festivities
     return(calendar)
