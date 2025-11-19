@@ -80,8 +80,7 @@ time.of.year.attribution <- function(calendar) {
   epiphany <- list()
   epiphany$date <- ymd(paste(start.year + 1, "01", "06", sep = "-"))
   epiphany$day.of.week <- wday(epiphany$date, week_start = 7)
-  christmas.end <-
-    epiphany$date %m+% days(((epiphany$day.of.week - 7) + 1))
+  christmas.end <- epiphany$date + days((8 - epiphany$day.of.week) %% 7)
   christmas.end <-
     which(calendar[["date"]] == christmas.end)
   calendar[(christmas.row + 1):christmas.end, "time.of.year"] <-
@@ -654,5 +653,5 @@ catholic.calendar <- function(year, special.days) {
 
 # TO DO: When a High festivity is replaced by an automation, is it moved to the next free day that is not of ranks 1-8
 
-test <- catholic.calendar(2023, special.days = special.days)
-write_csv(test, here("calendars/test_calendar_2024.csv"))
+test <- catholic.calendar(2025, special.days = special.days)
+write_csv(test, here("calendars/test_calendar_2025.csv"))
