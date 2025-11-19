@@ -52,7 +52,7 @@ calendar.generation <- function(year) {
   date.metadata <-
     tibble(date = seq(ymd(day.range[1]), ymd(day.range[2]), by = "days"))
   date.metadata <- date.metadata %>%
-    mutate(day.of.week = wday(date, week_start = 7))
+    mutate(day.of.week = as.integer(wday(date, week_start = 7)))
 
   # Return raw calendar
   return(date.metadata)
