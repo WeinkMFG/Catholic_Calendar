@@ -657,5 +657,5 @@ catholic.calendar <- function(
 
 # TO DO: When a High festivity is replaced by an automation, is it moved to the next free day that is not of ranks 1-8
 
-test <- catholic.calendar(2023, special.days = special.days)
-write_csv(test, here("calendars/test_calendar_2024.csv"))
+# test <- catholic.calendar(2023, special.days = special.days)
+# write_csv(test, here("calendars/test_calendar_2024.csv"))
