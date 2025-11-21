@@ -58,11 +58,17 @@ distribute.days <- function(calendar) {
 
 # Parameters:
 # calendar: a calendar object as created by distribute.days()
+# element.type: which element type to put into grid
+#               one of: "dates", "holidays"
 # cal.locale: the locale used for weekday names and month names,
 #             defaults to the locale of the OS
 #             common other values are "fr_FR", "de_DE", "en_US", and "en_GB"
 
-distribute.grid <- function(calendar, cal.locale = Sys.getlocale("LC_TIME")) {
+distribute.grid <- function(
+  calendar,
+  element.type,
+  cal.locale = Sys.getlocale("LC_TIME")
+) {
   # Generate calendar grid
   weekdays <- as.character(wday(
     1:7,
@@ -80,17 +86,31 @@ distribute.grid <- function(calendar, cal.locale = Sys.getlocale("LC_TIME")) {
 
   # Perform distribution across grid
   for (i in seq_len(nrow(calendar))) {
-    entry <- pull(calendar[i, "date"])
-    entry <- paste(
-      as.character(day(entry)),
-      as.character(month(
-        entry,
-        label = TRUE,
-        abbr = TRUE,
-        locale = cal.locale
-      )),
-      sep = " "
-    )
+    {
+      if (element.type == "dates") {
+        entry <- pull(calendar[i, "date"])
+        entry <- paste(
+          as.character(day(entry)),
+          as.character(month(
+            entry,
+            label = TRUE,
+            abbr = TRUE,
+            locale = cal.locale
+          )),
+          sep = " "
+        )
+      } else if (
+        element.type == "holidays" &
+          (str_detect(cal.locale, "German") | str_detect(cal.locale, "de"))
+      ) {
+        entry <- pull(calendar[i, "name_german"])
+      } else if (
+        element.type == "holidays" &
+          (str_detect(cal.locale, "English") | str_detect(cal.locale, "en"))
+      ) {
+        entry <- pull(calendar[i, "name_english"])
+      }
+    }
     row <- pull(calendar[i, "calendar.row"])
     col <- pull(calendar[i, "day.of.week"])
     calendar.dates.grid[row, col] <- entry
@@ -104,23 +124,7 @@ distribute.grid <- function(calendar, cal.locale = Sys.getlocale("LC_TIME")) {
 
 advent.page <- filter(calendar, time.of.year == "advent")
 advent.page <- distribute.days(advent.page)
-
-weekdays <- as.character(wday(1:7, label = TRUE, week_start = 7, abbr = FALSE))
-calendar.dates.grid <- tibble(
-  !!!setNames(
-    rep(list(character(max(advent.page[["calendar.row"]]))), 7),
-    weekdays
-  )
+advent.page <- distribute.grid(
+  advent.page,
+  element.type = "holidays"
 )
-
-for (i in seq_len(nrow(advent.page))) {
-  entry <- pull(advent.page[i, "date"])
-  entry <- paste(
-    as.character(day(entry)),
-    as.character(month(entry, label = TRUE, abbr = TRUE)),
-    sep = " "
-  )
-  row <- pull(advent.page[i, "calendar.row"])
-  col <- pull(advent.page[i, "day.of.week"])
-  calendar.dates.grid[row, col] <- entry
-}
